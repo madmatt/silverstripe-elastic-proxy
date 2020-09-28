@@ -15,8 +15,7 @@
 
     "autoload": {
         "psr-4": {
-            "Madmatt\\SilverStripeElasticProxy\\": "src/",
-            "Madmatt\\SilverStripeElasticProxy\\Tests\\": "tests/"
+            "Madmatt\\ElasticProxy\\": "src/"
         }
     },
 
