@@ -28,12 +28,13 @@ Rebuild your frontend components via your normal process and test that it works 
 Decide on how you want to use the proxy. There are two ways you can use this - you only need to follow either 3a or 3b below.
 
 * **Option 3a:** Use the fast search-proxy.php
-  * **Pros:** Faster (doesn't need to go through Silverstripe framework's entire bootstrap)
-  * **Cons:** Not secure if the website you are adding search to is protected, or you want to add any kind of rate-limiting or similar security measures to the proxy.
+  * **Pro:** Faster (doesn't need to go through Silverstripe framework's entire bootstrap)
+  * **Con:** Not secure if the website you are adding search to is protected, or you want to add any kind of rate-limiting or similar security measures to the proxy.
 
 * **Option 3b:** Use the slower but more secure ElasticsearchController
-  * **Pros:** Allows for all standard Silverstripe `HTTPMiddleware` layers, including security, rate limiting etc.
-  * **Cons:** Slower (as it requires Silverstripe bootstrap). May not be suitable for all use-cases, e.g. you will need to consider significant additional server load if you want to use this with auto-complete.
+  * **Pro:** Allows for all standard Silverstripe `HTTPMiddleware` layers, including security, rate limiting etc.
+  * **Pro:** Allows for standard Silverstripe `Extension` hooks (see [Extending the query and response](#extending-the-query-and-response) below)
+  * **Con:** Slower (as it requires Silverstripe bootstrap). May not be suitable for all use-cases, e.g. you will need to consider significant additional server load if you want to use this with auto-complete.
 
 ### 3a: Use search-proxy.php
 
@@ -61,3 +62,45 @@ SilverStripe\Control\Director:
 ```
 
 By default, this controller will run all created `HTTPMiddleware` layers, however you may need to configure these (for example, specific rate limiting for this endpoint).
+
+## Extending the query and response
+
+If using Option 3b above, you can use standard Silverstripe `Extension` hooks to augment both the JSON request sent **to** Elastic as well as the results returned to the React frontend, depending on your needs.
+
+Add the following to your YML configuration:
+
+```yml
+Madmatt\ElasticProxy\ElasticsearchController:
+  extensions:
+    - App\Extensions\ElasticsearchControllerExtension
+```
+
+Create your extension:
+
+```php
+<?php
+
+namespace App\Extensions;
+
+use SilverStripe\Core\Extension;
+
+class ElasticsearchControllerExtension extends Extension
+{
+    public function augmentElasticQuery(&$postData)
+    {
+        // Make modifications to the POST data that is about to be sent to Elastic Cloud.
+        // For example, you might want to force a specific filter (e.g. subsite_id) to always be applied
+        // When you're done, simply update $postData with your new JSON to submit to Elastic
+        // For example:
+        $postData = str_replace('test', 'test replacement', $postData);
+    }
+
+    public function augmentElasticResults(&$response)
+    {
+        // Make modifications to the JSON response string that Elastic returns after performing a search.
+        // When you're done, simply update $response with your new JSON to pass back to the React search-ui library.
+        // For example:
+        $response = str_replace('badword', '*******', $response);
+    }
+}
+```

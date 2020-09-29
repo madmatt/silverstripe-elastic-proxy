@@ -5,6 +5,7 @@ namespace Madmatt\ElasticProxy;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
+use SilverStripe\Core\Extensible;
 
 /**
  * Silverstripe -> Elastic App Search proxy
@@ -68,6 +69,9 @@ class ElasticsearchController extends Controller
         // extracting the zeroth key.
         $postData = $postData[0];
 
+        // Allow POST data to be manipulated by extensions
+        $this->extend('augmentElasticQuery', $postData);
+
         /**
          * Map of $_SERVER keys => Elastic header names that should be preserved and included in the request
          */
@@ -101,6 +105,11 @@ class ElasticsearchController extends Controller
         curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 
         // This will return the results of the API query out to stdout for the frontend library to interpret
-        return curl_exec($curl);
+        $response = curl_exec($curl);
+
+        // Allow response data from Elastic to be manipulated by extensions prior to being returned
+        $this->extend('augmentElasticResults', $response);
+
+        return $response;
     }
 }
