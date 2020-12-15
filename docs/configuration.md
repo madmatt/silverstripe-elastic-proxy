@@ -2,9 +2,10 @@
 
 ## Step 1: Environment variables
 Ensure you provide the following environment variables that the module can pick up:
-* `SS_ELASTIC_PROXY_ENDPOINT`: The full URL (without trailing slash) to your Elastic endpoint e.g. https://deploy-sha.ent-search.aws-region-code.aws.cloud.es.io
-* `SS_ELASTIC_PROXY_SEARCH_KEY`: The public search key (begins with `search-`) as provided by the Elastic interface
-* `SS_ELASTIC_PROXY_ENGINE_NAME`: The name of the Elastic engine that you expect to query
+* `APP_SEARCH_ENDPOINT`: The full URL (without trailing slash) to your Elastic endpoint e.g. https://deploy-sha.ent-search.aws-region-code.aws.cloud.es.io
+* `APP_SEARCH_API_SEARCH_KEY`: The public search key (begins with `search-`) as provided by the Elastic interface
+* `APP_SEARCH_ENGINE_PREFIX`: The prefix for the Elastic engine that you expect to query
+* [Optional] `APP_SEARCH_ENGINE_INDEX_NAME`: The name of the index you wish to use in the proxy (defaults to 'content')
 
 ## Step 2: Re-configure the Elastic React library
 Once the environment variables are configured, update the `AppSearchAPIConnector` you already have from [configuring the React library](https://github.com/elastic/search-ui/tree/master/packages/search-ui-app-search-connector):
