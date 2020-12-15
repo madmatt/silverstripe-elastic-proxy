@@ -30,11 +30,11 @@ This module does nothing until it's configured. See [docs/configuration.md](docs
 
 ## Upgrading
 
-When new versions of the module are released, you will need to manually re-run through the above [configuration](docs/configuration.md) steps - nothing will automatically update for you.
+When new versions of the module are released, you will need to manually re-run through the [configuration steps again](docs/configuration.md) - nothing will automatically update for you.
 
 ## Troubleshooting
 
-If you are having issues with the module, first try reverting the JS changes made in the previous section, to ensure what you are doing works fine when connecting directly to Elastic. If it does, but it doesn't work when using the `endpointBase` of `/_search`, there may be a bug with the module - please [create a GitHub issue](https://github.com/madmatt/silverstripe-elastic-proxy/issues) with as much detail as you can.
+If you are having issues with the module, first try reverting the JS changes made in the [configuration docs](docs/configuration.md), to ensure what you are doing works fine when connecting directly to Elastic. If it does, but it doesn't work when using the `endpointBase` of `/_search`, there may be a bug with the module - please [create a GitHub issue](https://github.com/madmatt/silverstripe-elastic-proxy/issues) with as much detail as you can.
 
 
 ## Maintainers
