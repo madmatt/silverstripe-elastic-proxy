@@ -56,11 +56,20 @@ Enable the `ElasticsearchController` and decide on the URL route for the control
 ```yml
 Madmatt\ElasticProxy\ElasticsearchController:
   enabled: true
+  allow_list:
+      - search
+      - query_suggestion
+      - curations
+      - schema
+      - synonyms
 SilverStripe\Control\Director:
   rules:
     # We need this to include 6 params because the default Silverstripe rule only includes 3, and the Elastic-generated URL looks like /api/as/v1/engines/<engine name>/search.json
     '_search/$1/$2/$3/$4/$5/$6': Madmatt\ElasticProxy\ElasticsearchController
 ```
+
+Here you can also define the list of endpoints allowed to be accessed through the proxy, for example if you are only using it
+for autocomplete, you can allow only `query_suggestion`
 
 By default, this controller will run all created `HTTPMiddleware` layers, however you may need to configure these (for example, specific rate limiting for this endpoint).
 
