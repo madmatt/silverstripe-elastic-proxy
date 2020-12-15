@@ -52,6 +52,24 @@ if (sizeof($postData) === 0) {
     exit(1);
 }
 
+$url = $_SERVER['REQUEST_URI'];
+$action = substr(rtrim($url, '/'), strrpos($url, '/') + 1);
+
+// Non-exhaustive list of allowed endpoints - update if necessary
+$allowList = [
+    'search',
+    'query_suggestion',
+    'curations',
+    'schema',
+    'synonyms',
+];
+
+if (!in_array(rtrim($action, '.json'), $allowList)) {
+    header('HTTP/1.1 403 Forbidden');
+    echo '{"errors":["Attempted to access blocked endpoint"]}';
+    exit(1);
+}
+
 // If we get here, all checks have passed and we just need to extract the POST data. We don't care what the actual data
 // is, so we run no further checks. This is an awkward way of extracting the POST data, which is sent by the Elastic
 // search-ui system as application/json in the POST body, but this isn't understood by PHP, so PHP assumes that the
@@ -71,7 +89,7 @@ $passthruHeaders = [
 
 $headers = [
     sprintf('Authorization: Bearer %s', $searchKey), // Insert the API key stored in the environment
-    'Content-Type: application/json' // Force to application/json as we've overwritten this in the JS so PHP knows it's a POST
+    'Content-Type: application/json;charset=utf-8' // Force to application/json as we've overwritten this in the JS so PHP knows it's a POST
 ];
 
 // Pass-through optional HTTP headers provided by the Elastic search-ui JS
@@ -84,7 +102,7 @@ foreach ($passthruHeaders as $httpKey => $elasticKey) {
 $indexName = Environment::getEnv('APP_SEARCH_ENGINE_INDEX_NAME') ?: 'content';
 
 // Hard-code the API path to ensure an attacker can't exploit other endpoints on the App Search instance
-$path = sprintf('/api/as/v1/engines/%s-%s/search.json', $engineName, $indexName);
+$path = sprintf('/api/as/v1/engines/%s-%s/%s', $engineName, $indexName, $action);
 $fullUrl = $endpoint . $path;
 
 $curl = curl_init($fullUrl);
