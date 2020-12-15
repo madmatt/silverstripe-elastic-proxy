@@ -14,9 +14,10 @@ use SilverStripe\Core\Extensible;
  * Elastic Enterprise Search or Elastic App Search instance.
  *
  * Requires the following environment variables to be set alongside other typical ones like SS_DATABASE_USERNAME:
- * - SS_ELASTIC_PROXY_ENDPOINT: The full URL (without trailing slash) to your Elastic endpoint e.g. https://deploy-sha.ent-search.aws-region-code.aws.cloud.es.io
- * - SS_ELASTIC_PROXY_SEARCH_KEY: The public search key (begins with `search-`) as provided by the Elastic interface
- * - SS_ELASTIC_PROXY_ENGINE_NAME: The name of the Elastic engine that you expect to query
+ * - APP_SEARCH_ENDPOINT: The full URL (without trailing slash) to your Elastic endpoint e.g. https://deploy-sha.ent-search.aws-region-code.aws.cloud.es.io
+ * - APP_SEARCH_API_SEARCH_KEY: The public search key (begins with `search-`) as provided by the Elastic interface
+ * - APP_SEARCH_ENGINE_PREFIX: The prefix for the Elastic engine that you expect to query
+ * - APP_SEARCH_ENGINE_INDEX_NAME: The name of the Elastic index that you expect to query (defaults to 'content')
  *
  * See README.md and docs/configuration.md for full installation and configuration details.
  */
@@ -32,6 +33,19 @@ class ElasticsearchController extends Controller
     private static $enabled = false;
 
     /**
+     * @config
+     * @var string[]
+     * A list of endpoints that should be allowed to be hit via this proxy
+     */
+    private static $allow_list = [
+        'search',
+        'query_suggestion',
+        'curations',
+        'schema',
+        'synonyms',
+    ];
+
+    /**
      * Handle all possible error / edge cases, then passthru to Elastic for rendering of search results.
      *
      * @return string
@@ -43,9 +57,9 @@ class ElasticsearchController extends Controller
             exit(1);
         }
 
-        $endpoint = Environment::getEnv('SS_ELASTIC_PROXY_ENDPOINT');
-        $searchKey = Environment::getEnv('SS_ELASTIC_PROXY_SEARCH_KEY');
-        $engineName = Environment::getEnv('SS_ELASTIC_PROXY_ENGINE_NAME');
+        $endpoint = Environment::getEnv('APP_SEARCH_ENDPOINT');
+        $searchKey = Environment::getEnv('APP_SEARCH_API_SEARCH_KEY');
+        $engineName = Environment::getEnv('APP_SEARCH_ENGINE_PREFIX');
 
         if (!$endpoint || !$searchKey || !$engineName) {
             $this->httpError(500, 'Required environment value not found for search-proxy');
@@ -60,6 +74,13 @@ class ElasticsearchController extends Controller
 
         if (sizeof($postData) === 0) {
             $this->httpError(500, 'No data submitted to search endpoint');
+        }
+
+        $url = $this->getRequest()->getURL();
+        $action = substr(rtrim($url, '/'), strrpos($url, '/') + 1);
+
+        if (!in_array(rtrim($action, '.json'), $this->config()->allow_list)) {
+            $this->httpError(403, 'Attempted to access blocked endpoint');
         }
 
         // If we get here, all checks have passed and we just need to extract the POST data. We don't care what the actual data
@@ -84,7 +105,7 @@ class ElasticsearchController extends Controller
 
         $headers = [
             sprintf('Authorization: Bearer %s', $searchKey), // Insert the API key stored in the environment
-            'Content-Type: application/json' // Force to application/json as we've overwritten this in the JS so PHP knows it's a POST
+            'Content-Type: application/json;charset=utf-8' // Force to application/json as we've overwritten this in the JS so PHP knows it's a POST
         ];
 
         // Pass-through optional HTTP headers provided by the Elastic search-ui JS
@@ -94,8 +115,10 @@ class ElasticsearchController extends Controller
             }
         }
 
+        $indexName = Environment::getEnv('APP_SEARCH_ENGINE_INDEX_NAME') ?: 'content';
+
         // Hard-code the API path to ensure an attacker can't exploit other endpoints on the App Search instance
-        $path = sprintf('/api/as/v1/engines/%s/search.json', $engineName);
+        $path = sprintf('/api/as/v1/engines/%s-%s/%s', $engineName, $indexName, $action);
         $fullUrl = $endpoint . $path;
 
         $curl = curl_init($fullUrl);
