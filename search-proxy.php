@@ -64,7 +64,12 @@ $allowList = [
     'synonyms',
 ];
 
-if (!in_array(rtrim($action, '.json'), $allowList)) {
+// trim .json if present
+if (substr($action, -5) === '.json') {
+    $action = substr($action, 0, -5);
+}
+
+if (!in_array($action, $allowList)) {
     header('HTTP/1.1 403 Forbidden');
     echo '{"errors":["Attempted to access blocked endpoint"]}';
     exit(1);

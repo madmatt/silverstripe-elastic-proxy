@@ -79,7 +79,12 @@ class ElasticsearchController extends Controller
         $url = $this->getRequest()->getURL();
         $action = substr(rtrim($url, '/'), strrpos($url, '/') + 1);
 
-        if (!in_array(rtrim($action, '.json'), $this->config()->allow_list)) {
+        // trim .json if present
+        if (substr($action, -5) === '.json') {
+            $action = substr($action, 0, -5);
+        }
+
+        if (!in_array($action, $this->config()->allow_list)) {
             $this->httpError(403, 'Attempted to access blocked endpoint');
         }
 
