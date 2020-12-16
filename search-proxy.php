@@ -6,10 +6,11 @@
  * Elastic Enterprise Search or Elastic App Search instance.
  *
  * Requires the following environment variables to be set alongside other typical ones like SS_DATABASE_USERNAME:
- * - SS_ELASTIC_PROXY_ENDPOINT: The full URL (without trailing slash) to your Elastic endpoint e.g. https://deploy-sha.ent-search.aws-region-code.aws.cloud.es.io
- * - SS_ELASTIC_PROXY_SEARCH_KEY: The public search key (begins with `search-`) as provided by the Elastic interface
- * - SS_ELASTIC_PROXY_ENGINE_NAME: The name of the Elastic engine that you expect to query
- * 
+ * - APP_SEARCH_ENDPOINT: The full URL (without trailing slash) to your Elastic endpoint e.g. https://deploy-sha.ent-search.aws-region-code.aws.cloud.es.io
+ * - APP_SEARCH_API_SEARCH_KEY: The public search key (begins with `search-`) as provided by the Elastic interface
+ * - APP_SEARCH_ENGINE_PREFIX: The prefix for the Elastic engine that you expect to query
+ * - APP_SEARCH_ENGINE_INDEX_NAME: The name of the Elastic index that you expect to query (defaults to 'content')
+ *
  * See README.md and docs/configuration.md for full installation and configuration details.
  */
 
@@ -26,9 +27,9 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
     exit(1);
 }
 
-$endpoint = Environment::getEnv('SS_ELASTIC_PROXY_ENDPOINT');
-$searchKey = Environment::getEnv('SS_ELASTIC_PROXY_SEARCH_KEY');
-$engineName = Environment::getEnv('SS_ELASTIC_PROXY_ENGINE_NAME');
+$endpoint = Environment::getEnv('APP_SEARCH_ENDPOINT');
+$searchKey = Environment::getEnv('APP_SEARCH_API_SEARCH_KEY');
+$engineName = Environment::getEnv('APP_SEARCH_ENGINE_PREFIX');
 
 if (!$endpoint || !$searchKey || !$engineName) {
     header('HTTP/1.1 500 Internal Server Error');
@@ -51,6 +52,29 @@ if (sizeof($postData) === 0) {
     exit(1);
 }
 
+$url = $_SERVER['REQUEST_URI'];
+$action = substr(rtrim($url, '/'), strrpos($url, '/') + 1);
+
+// Non-exhaustive list of allowed endpoints - update if necessary
+$allowList = [
+    'search',
+    'query_suggestion',
+    'curations',
+    'schema',
+    'synonyms',
+];
+
+// trim .json if present
+if (substr($action, -5) === '.json') {
+    $action = substr($action, 0, -5);
+}
+
+if (!in_array($action, $allowList)) {
+    header('HTTP/1.1 403 Forbidden');
+    echo '{"errors":["Attempted to access blocked endpoint"]}';
+    exit(1);
+}
+
 // If we get here, all checks have passed and we just need to extract the POST data. We don't care what the actual data
 // is, so we run no further checks. This is an awkward way of extracting the POST data, which is sent by the Elastic
 // search-ui system as application/json in the POST body, but this isn't understood by PHP, so PHP assumes that the
@@ -70,7 +94,7 @@ $passthruHeaders = [
 
 $headers = [
     sprintf('Authorization: Bearer %s', $searchKey), // Insert the API key stored in the environment
-    'Content-Type: application/json' // Force to application/json as we've overwritten this in the JS so PHP knows it's a POST
+    'Content-Type: application/json;charset=utf-8' // Force to application/json as we've overwritten this in the JS so PHP knows it's a POST
 ];
 
 // Pass-through optional HTTP headers provided by the Elastic search-ui JS
@@ -80,8 +104,10 @@ foreach ($passthruHeaders as $httpKey => $elasticKey) {
     }
 }
 
+$indexName = Environment::getEnv('APP_SEARCH_ENGINE_INDEX_NAME') ?: 'content';
+
 // Hard-code the API path to ensure an attacker can't exploit other endpoints on the App Search instance
-$path = sprintf('/api/as/v1/engines/%s/search.json', $engineName);
+$path = sprintf('/api/as/v1/engines/%s-%s/%s', $engineName, $indexName, $action);
 $fullUrl = $endpoint . $path;
 
 $curl = curl_init($fullUrl);

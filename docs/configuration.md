@@ -2,9 +2,10 @@
 
 ## Step 1: Environment variables
 Ensure you provide the following environment variables that the module can pick up:
-* `SS_ELASTIC_PROXY_ENDPOINT`: The full URL (without trailing slash) to your Elastic endpoint e.g. https://deploy-sha.ent-search.aws-region-code.aws.cloud.es.io
-* `SS_ELASTIC_PROXY_SEARCH_KEY`: The public search key (begins with `search-`) as provided by the Elastic interface
-* `SS_ELASTIC_PROXY_ENGINE_NAME`: The name of the Elastic engine that you expect to query
+* `APP_SEARCH_ENDPOINT`: The full URL (without trailing slash) to your Elastic endpoint e.g. https://deploy-sha.ent-search.aws-region-code.aws.cloud.es.io
+* `APP_SEARCH_API_SEARCH_KEY`: The public search key (begins with `search-`) as provided by the Elastic interface
+* `APP_SEARCH_ENGINE_PREFIX`: The prefix for the Elastic engine that you expect to query
+* [Optional] `APP_SEARCH_ENGINE_INDEX_NAME`: The name of the index you wish to use in the proxy (defaults to 'content')
 
 ## Step 2: Re-configure the Elastic React library
 Once the environment variables are configured, update the `AppSearchAPIConnector` you already have from [configuring the React library](https://github.com/elastic/search-ui/tree/master/packages/search-ui-app-search-connector):
@@ -55,11 +56,20 @@ Enable the `ElasticsearchController` and decide on the URL route for the control
 ```yml
 Madmatt\ElasticProxy\ElasticsearchController:
   enabled: true
+  allow_list:
+      - search
+      - query_suggestion
+      - curations
+      - schema
+      - synonyms
 SilverStripe\Control\Director:
   rules:
     # We need this to include 6 params because the default Silverstripe rule only includes 3, and the Elastic-generated URL looks like /api/as/v1/engines/<engine name>/search.json
     '_search/$1/$2/$3/$4/$5/$6': Madmatt\ElasticProxy\ElasticsearchController
 ```
+
+Here you can also define the list of endpoints allowed to be accessed through the proxy, for example if you are only using it
+for autocomplete, you can allow only `query_suggestion`
 
 By default, this controller will run all created `HTTPMiddleware` layers, however you may need to configure these (for example, specific rate limiting for this endpoint).
 
