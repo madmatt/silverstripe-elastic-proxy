@@ -115,5 +115,9 @@ curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
 curl_setopt($curl, CURLOPT_POST, true);
 curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 
+// Set a reasonable timeout to lower attack surface (in seconds)
+curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2);
+curl_setopt($curl, CURLOPT_TIMEOUT, 5);
+
 // This will return the results of the API query out to stdout for the frontend library to interpret
 curl_exec($curl);

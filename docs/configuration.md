@@ -62,6 +62,8 @@ Madmatt\ElasticProxy\ElasticsearchController:
       - curations
       - schema
       - synonyms
+  curl_connect_timeout: 2
+  curl_timeout: 5
 SilverStripe\Control\Director:
   rules:
     # We need this to include 6 params because the default Silverstripe rule only includes 3, and the Elastic-generated URL looks like /api/as/v1/engines/<engine name>/search.json
@@ -69,7 +71,10 @@ SilverStripe\Control\Director:
 ```
 
 Here you can also define the list of endpoints allowed to be accessed through the proxy, for example if you are only using it
-for autocomplete, you can allow only `query_suggestion`
+for autocomplete, you can allow only `query_suggestion`.
+
+Additional options exist for changing the curl options `CURLOPT_CONNECTTIMEOUT` and `CURLOPT_TIMEOUT`. **Caution**:
+increasing these values increases the attack surface area for someone attacking the site, so proceed carefully.
 
 By default, this controller will run all created `HTTPMiddleware` layers, however you may need to configure these (for example, specific rate limiting for this endpoint).
 

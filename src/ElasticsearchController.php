@@ -34,6 +34,18 @@ class ElasticsearchController extends Controller
 
     /**
      * @config
+     * @var int time in seconds allowed for curl to make a successful connection
+     */
+    private static $curl_connect_timeout = 2;
+
+    /**
+     * @config
+     * @var int time in seconds allowed for curl to make a return a successful response
+     */
+    private static $curl_timeout = 5;
+
+    /**
+     * @config
      * @var string[]
      * A list of endpoints that should be allowed to be hit via this proxy
      */
@@ -131,6 +143,10 @@ class ElasticsearchController extends Controller
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_POST, true);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
+
+        // Set a reasonable timeout to lower attack surface
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $this->config()->curl_connect_timeout);
+        curl_setopt($curl, CURLOPT_TIMEOUT, $this->config()->curl_timeout);
 
         // This will return the results of the API query out to stdout for the frontend library to interpret
         $response = curl_exec($curl);
