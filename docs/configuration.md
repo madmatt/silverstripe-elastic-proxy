@@ -73,8 +73,13 @@ SilverStripe\Control\Director:
 Here you can also define the list of endpoints allowed to be accessed through the proxy, for example if you are only using it
 for autocomplete, you can allow only `query_suggestion`.
 
-Additional options exist for changing the curl options `CURLOPT_CONNECTTIMEOUT` and `CURLOPT_TIMEOUT`. **Caution**:
-increasing these values increases the attack surface area for someone attacking the site, so proceed carefully.
+Additional options exist for changing the curl options `CURLOPT_CONNECTTIMEOUT`
+and `CURLOPT_TIMEOUT` when passing the request to Elastic.
+
+**Caution:
+These are intentionally set lower than the default of 30 seconds to lower the impact of denial of
+service attacks when Elastic is unavailable or under heavy load. Raising these
+limits is possible, but you should only do so if regular queries are timing out.**
 
 By default, this controller will run all created `HTTPMiddleware` layers, however you may need to configure these (for example, specific rate limiting for this endpoint).
 
