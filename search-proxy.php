@@ -119,5 +119,24 @@ curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 2);
 curl_setopt($curl, CURLOPT_TIMEOUT, 5);
 
+// Check for proxy vars and set if present
+$proxyURL = Environment::getEnv('SS_OUTBOUND_PROXY');
+$proxyPort = Environment::getEnv('SS_OUTBOUND_PROXY_PORT');
+
+if ($proxyURL && $proxyPort) {
+    curl_setopt($curl, CURLOPT_PROXY, "{$proxyURL}:{$proxyPort}");
+}
+
 // This will return the results of the API query out to stdout for the frontend library to interpret
 curl_exec($curl);
+
+if (curl_errno($curl)) {
+    $curlError = curl_error($curl);
+}
+curl_close($curl);
+
+if (isset($curlError)) {
+    openlog('search-proxy', LOG_PID, LOG_LOCAL0);
+    syslog(LOG_WARNING, sprintf("error connecting to elastic: %s", $curlError));
+    closelog();
+}

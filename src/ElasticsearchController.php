@@ -2,10 +2,12 @@
 
 namespace Madmatt\ElasticProxy;
 
+use Psr\Log\LoggerInterface;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Extensible;
+use SilverStripe\Core\Injector\Injector;
 
 /**
  * Silverstripe -> Elastic App Search proxy
@@ -148,8 +150,27 @@ class ElasticsearchController extends Controller
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $this->config()->curl_connect_timeout);
         curl_setopt($curl, CURLOPT_TIMEOUT, $this->config()->curl_timeout);
 
+        // Check for proxy vars and set if present
+        $proxyURL = Environment::getEnv('SS_OUTBOUND_PROXY');
+        $proxyPort = Environment::getEnv('SS_OUTBOUND_PROXY_PORT');
+
+        if ($proxyURL && $proxyPort) {
+            curl_setopt($curl, CURLOPT_PROXY, "{$proxyURL}:{$proxyPort}");
+        }
+
         // This will return the results of the API query out to stdout for the frontend library to interpret
         $response = curl_exec($curl);
+
+        if (curl_errno($curl)) {
+            $curlError = curl_error($curl);
+        }
+        curl_close($curl);
+
+        if (isset($curlError)) {
+            Injector::inst()->get(LoggerInterface::class)->warning(
+                sprintf("error connecting to elastic: %s", $curlError)
+            );
+        }
 
         // Allow response data from Elastic to be manipulated by extensions prior to being returned
         $this->extend('augmentElasticResults', $response);
