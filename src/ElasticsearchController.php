@@ -84,9 +84,9 @@ class ElasticsearchController extends Controller
         }
 
         // Ensure we have POST data before attempting to extract it
-        $postData = array_keys($_POST);
+        $postData = $this->getRequest()->getBody();
 
-        if (sizeof($postData) === 0) {
+        if (!$postData || $postData === '') {
             $this->httpError(500, 'No data submitted to search endpoint');
         }
 
@@ -101,13 +101,6 @@ class ElasticsearchController extends Controller
         if (!in_array($action, $this->config()->allow_list)) {
             $this->httpError(403, 'Attempted to access blocked endpoint');
         }
-
-        // If we get here, all checks have passed and we just need to extract the POST data. We don't care what the actual data
-        // is, so we run no further checks. This is an awkward way of extracting the POST data, which is sent by the Elastic
-        // search-ui system as application/json in the POST body, but this isn't understood by PHP, so PHP assumes that the
-        // POST body is actually the array *key* with an empty value - hence the use of array_keys to flip the array and then
-        // extracting the zeroth key.
-        $postData = $postData[0];
 
         // Allow POST data to be manipulated by extensions
         $this->extend('augmentElasticQuery', $postData);
